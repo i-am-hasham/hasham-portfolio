@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Hasham Baig — DevOps Engineer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080B10;
+    --surface: #0D1117;
+    --card: #111820;
+    --border: #1E2A38;
+    --accent: #00E5FF;
+    --accent2: #7B61FF;
+    --accent3: #00FF88;
+    --text: #E8F0FE;
+    --muted: #6B7FA3;
+    --mono: 'Space Mono', monospace;
+    --sans: 'Syne', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    overflow-x: hidden;
+    cursor: none;
+  }
+
+  /* Custom cursor */
+  .cursor {
+    width: 10px; height: 10px;
+    background: var(--accent);
+    border-radius: 50%;
+    position: fixed;
+    pointer-events: none;
+    z-index: 9999;
+    transition: transform 0.1s;
+    mix-blend-mode: screen;
+  }
+  .cursor-ring {
+    width: 36px; height: 36px;
+    border: 1px solid var(--accent);
+    border-radius: 50%;
+    position: fixed;
+    pointer-events: none;
+    z-index: 9998;
+    transition: all 0.15s ease;
+    mix-blend-mode: screen;
+    opacity: 0.5;
+  }
+
+  /* Grid bg */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,229,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* NAV */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0;
+    z-index: 100;
+    padding: 1.2rem 4rem;
+    display: flex; justify-content: space-between; align-items: center;
+    background: rgba(8,11,16,0.85);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-logo {
+    font-family: var(--mono);
+    font-size: 0.85rem;
+    color: var(--accent);
+    letter-spacing: 0.15em;
+  }
+  .nav-links { display: flex; gap: 2.5rem; list-style: none; }
+  .nav-links a {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    color: var(--muted);
+    text-decoration: none;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    transition: color 0.2s;
+  }
+  .nav-links a:hover { color: var(--accent); }
+
+  /* HERO */
+  #hero {
+    min-height: 100vh;
+    display: flex; align-items: center;
+    padding: 8rem 4rem 4rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero-glow {
+    position: absolute;
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(0,229,255,0.07) 0%, transparent 70%);
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    animation: pulse 6s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  @keyframes pulse {
+    0%, 100% { transform: translate(-50%,-50%) scale(1); opacity: 0.7; }
+    50% { transform: translate(-50%,-50%) scale(1.15); opacity: 1; }
+  }
+
+  .hero-content { position: relative; z-index: 1; max-width: 900px; }
+
+  .hero-tag {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    color: var(--accent);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 1.5rem;
+    display: flex; align-items: center; gap: 0.75rem;
+  }
+  .hero-tag::before {
+    content: '';
+    width: 40px; height: 1px;
+    background: var(--accent);
+  }
+
+  h1 {
+    font-size: clamp(3.5rem, 9vw, 7.5rem);
+    font-weight: 800;
+    line-height: 0.9;
+    letter-spacing: -0.03em;
+    margin-bottom: 1.5rem;
+  }
+  h1 .name-line { display: block; }
+  h1 .outline {
+    -webkit-text-stroke: 1px rgba(0,229,255,0.4);
+    color: transparent;
+  }
+
+  .hero-desc {
+    font-family: var(--mono);
+    font-size: 0.85rem;
+    color: var(--muted);
+    line-height: 1.8;
+    max-width: 520px;
+    margin-bottom: 2.5rem;
+  }
+
+  .hero-cta {
+    display: flex; gap: 1rem; flex-wrap: wrap;
+  }
+  .btn-primary {
+    padding: 0.75rem 2rem;
+    background: var(--accent);
+    color: var(--bg);
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-decoration: none;
+    border: none;
+    cursor: none;
+    transition: all 0.2s;
+    clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+  }
+  .btn-primary:hover { background: #fff; transform: translateY(-2px); }
+
+  .btn-ghost {
+    padding: 0.75rem 2rem;
+    background: transparent;
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    letter-spacing: 0.1em;
+    text-decoration: none;
+    border: 1px solid var(--border);
+    cursor: none;
+    transition: all 0.2s;
+  }
+  .btn-ghost:hover { border-color: var(--accent); background: rgba(0,229,255,0.05); }
+
+  /* Status badge */
+  .status-badge {
+    position: absolute; top: 8rem; right: 4rem;
+    font-family: var(--mono); font-size: 0.7rem;
+    color: var(--accent3);
+    display: flex; align-items: center; gap: 0.5rem;
+    border: 1px solid rgba(0,255,136,0.2);
+    padding: 0.5rem 1rem;
+    background: rgba(0,255,136,0.05);
+  }
+  .status-dot {
+    width: 7px; height: 7px;
+    background: var(--accent3);
+    border-radius: 50%;
+    animation: blink 2s infinite;
+  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  /* Scroll indicator */
+  .scroll-line {
+    position: absolute; bottom: 2rem; left: 4rem;
+    display: flex; align-items: center; gap: 1rem;
+    font-family: var(--mono); font-size: 0.65rem;
+    color: var(--muted); letter-spacing: 0.15em;
+  }
+  .scroll-line::after {
+    content: ''; width: 60px; height: 1px;
+    background: linear-gradient(90deg, var(--muted), transparent);
+  }
+
+  /* SECTION LAYOUT */
+  section { padding: 6rem 4rem; position: relative; z-index: 1; }
+
+  .section-header {
+    display: flex; align-items: center; gap: 1.5rem;
+    margin-bottom: 4rem;
+  }
+  .section-num {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    color: var(--accent);
+    letter-spacing: 0.15em;
+  }
+  .section-title {
+    font-size: clamp(1.8rem, 4vw, 3rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+  .section-line {
+    flex: 1; height: 1px;
+    background: linear-gradient(90deg, var(--border), transparent);
+  }
+
+  /* ABOUT */
+  #about { background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  .about-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.2fr;
+    gap: 5rem;
+    align-items: start;
+  }
+  .about-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 2.5rem;
+    position: relative;
+  }
+  .about-card::before {
+    content: '';
+    position: absolute; top: -1px; left: 2rem;
+    width: 80px; height: 2px;
+    background: var(--accent);
+  }
+  .about-label {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    color: var(--accent);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+  }
+  .about-text {
+    font-size: 1rem;
+    color: var(--muted);
+    line-height: 1.9;
+  }
+  .about-text strong { color: var(--text); }
+
+  .info-grid { display: grid; gap: 1rem; }
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--border);
+    font-family: var(--mono);
+    font-size: 0.78rem;
+  }
+  .info-key { color: var(--muted); }
+  .info-val { color: var(--text); }
+  .info-val a { color: var(--accent); text-decoration: none; }
+  .info-val a:hover { text-decoration: underline; }
+
+  /* SKILLS */
+  #skills { }
+  .skills-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+  }
+  .skill-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 2rem;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.3s, transform 0.3s;
+  }
+  .skill-card:hover { border-color: var(--accent); transform: translateY(-4px); }
+  .skill-card::after {
+    content: '';
+    position: absolute; bottom: 0; left: 0;
+    width: 100%; height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.4s;
+  }
+  .skill-card:hover::after { transform: scaleX(1); }
+
+  .skill-icon {
+    font-size: 2rem; margin-bottom: 1rem;
+    filter: grayscale(1);
+    transition: filter 0.3s;
+  }
+  .skill-card:hover .skill-icon { filter: grayscale(0); }
+  .skill-name {
+    font-weight: 800;
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+  }
+  .skill-desc {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    color: var(--muted);
+    line-height: 1.7;
+  }
+  .skill-level {
+    margin-top: 1.2rem;
+    height: 2px;
+    background: var(--border);
+    border-radius: 99px;
+    overflow: hidden;
+  }
+  .skill-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 99px;
+    transition: width 1.2s ease;
+    width: 0;
+  }
+
+  /* EXPERIENCE */
+  #experience { background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  .exp-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 2.5rem 3rem;
+    position: relative;
+  }
+  .exp-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0;
+    width: 3px; height: 100%;
+    background: linear-gradient(180deg, var(--accent), var(--accent2));
+  }
+  .exp-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap; gap: 1rem;
+  }
+  .exp-role { font-size: 1.5rem; font-weight: 800; }
+  .exp-company {
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    color: var(--accent);
+    margin-top: 0.3rem;
+  }
+  .exp-date {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    padding: 0.3rem 0.8rem;
+    white-space: nowrap;
+  }
+  .exp-items { list-style: none; display: grid; gap: 0.75rem; }
+  .exp-items li {
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    color: var(--muted);
+    line-height: 1.7;
+    padding-left: 1.2rem;
+    position: relative;
+  }
+  .exp-items li::before {
+    content: '▸';
+    position: absolute; left: 0;
+    color: var(--accent);
+  }
+  .exp-items li strong { color: var(--text); }
+
+  .contrib-title {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    color: var(--accent2);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin: 2rem 0 1rem;
+    display: flex; align-items: center; gap: 1rem;
+  }
+  .contrib-title::after {
+    content: ''; flex: 1; height: 1px;
+    background: linear-gradient(90deg, var(--border), transparent);
+  }
+
+  /* KEY PROJECTS */
+  #projects { }
+  .projects-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 1.5rem;
+  }
+  .proj-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 2rem;
+    transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+  .proj-card:hover { border-color: var(--accent2); }
+  .proj-card::before {
+    content: '';
+    position: absolute; top: 0; right: 0;
+    width: 60px; height: 60px;
+    background: radial-gradient(circle at top right, rgba(123,97,255,0.15), transparent);
+  }
+  .proj-num {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    color: var(--accent2);
+    letter-spacing: 0.15em;
+    margin-bottom: 1rem;
+  }
+  .proj-title { font-size: 1.1rem; font-weight: 800; margin-bottom: 0.75rem; }
+  .proj-desc {
+    font-family: var(--mono);
+    font-size: 0.73rem;
+    color: var(--muted);
+    line-height: 1.7;
+  }
+  .proj-tags {
+    display: flex; flex-wrap: wrap; gap: 0.4rem;
+    margin-top: 1.2rem;
+  }
+  .tag {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    color: var(--accent);
+    border: 1px solid rgba(0,229,255,0.2);
+    padding: 0.2rem 0.6rem;
+    background: rgba(0,229,255,0.04);
+  }
+
+  /* EDUCATION */
+  #education { background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  .edu-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem; }
+  .edu-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 2rem;
+    position: relative;
+  }
+  .edu-card::after {
+    content: '';
+    position: absolute; bottom: 0; right: 0;
+    width: 40px; height: 40px;
+    border-right: 2px solid var(--accent);
+    border-bottom: 2px solid var(--accent);
+  }
+  .edu-degree { font-size: 1rem; font-weight: 800; margin-bottom: 0.4rem; }
+  .edu-school { font-family: var(--mono); font-size: 0.78rem; color: var(--accent); margin-bottom: 0.5rem; }
+  .edu-year { font-family: var(--mono); font-size: 0.7rem; color: var(--muted); }
+
+  /* CONTACT */
+  #contact { text-align: center; }
+  .contact-inner { max-width: 600px; margin: 0 auto; }
+  .contact-big {
+    font-size: clamp(2.5rem, 7vw, 5rem);
+    font-weight: 800;
+    line-height: 1;
+    margin-bottom: 1.5rem;
+  }
+  .contact-big .highlight { color: var(--accent); }
+  .contact-sub {
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    color: var(--muted);
+    line-height: 1.8;
+    margin-bottom: 2.5rem;
+  }
+  .contact-links {
+    display: flex; justify-content: center;
+    gap: 1.5rem; flex-wrap: wrap;
+  }
+  .contact-link {
+    display: flex; align-items: center; gap: 0.5rem;
+    font-family: var(--mono); font-size: 0.78rem;
+    color: var(--muted); text-decoration: none;
+    border: 1px solid var(--border);
+    padding: 0.75rem 1.5rem;
+    transition: all 0.2s;
+  }
+  .contact-link:hover { color: var(--accent); border-color: var(--accent); background: rgba(0,229,255,0.04); }
+
+  /* FOOTER */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 2rem 4rem;
+    display: flex; justify-content: space-between; align-items: center;
+    font-family: var(--mono); font-size: 0.7rem; color: var(--muted);
+  }
+  footer span { color: var(--accent); }
+
+  /* ANIMATIONS */
+  .fade-in { opacity: 0; transform: translateY(20px); transition: all 0.6s ease; }
+  .fade-in.visible { opacity: 1; transform: translateY(0); }
+
+  @media (max-width: 768px) {
+    nav { padding: 1rem 1.5rem; }
+    .nav-links { gap: 1.2rem; }
+    section { padding: 4rem 1.5rem; }
+    #hero { padding: 7rem 1.5rem 4rem; }
+    .about-grid { grid-template-columns: 1fr; gap: 2rem; }
+    .status-badge { top: 7rem; right: 1.5rem; }
+    footer { flex-direction: column; gap: 0.5rem; text-align: center; }
+  }
+</style>
+</head>
+<body>
+
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+
+<nav>
+  <div class="nav-logo">HB://DEVOPS</div>
+  <ul class="nav-links">
+    <li><a href="#about">About</a></li>
+    <li><a href="#skills">Skills</a></li>
+    <li><a href="#experience">Experience</a></li>
+    <li><a href="#projects">Projects</a></li>
+    <li><a href="#contact">Contact</a></li>
+  </ul>
+</nav>
+
+<section id="hero">
+  <div class="hero-glow"></div>
+  <div class="status-badge">
+    <div class="status-dot"></div>
+    AVAILABLE FOR OPPORTUNITIES
+  </div>
+  <div class="hero-content">
+    <div class="hero-tag">DevOps Engineer</div>
+    <h1>
+      <span class="name-line">HASHAM</span>
+      <span class="name-line outline">BAIG</span>
+    </h1>
+    <p class="hero-desc">
+      Architecting resilient Kubernetes infrastructure at scale.<br>
+      400+ node clusters. Core banking systems. Production-grade observability.<br>
+      Building the backbone of modern cloud infrastructure.
+    </p>
+    <div class="hero-cta">
+      <a href="#experience" class="btn-primary">VIEW EXPERIENCE</a>
+      <a href="#contact" class="btn-ghost">GET IN TOUCH</a>
+    </div>
+  </div>
+  <div class="scroll-line">SCROLL TO EXPLORE</div>
+</section>
+
+<section id="about">
+  <div class="section-header">
+    <span class="section-num">01</span>
+    <h2 class="section-title">About</h2>
+    <div class="section-line"></div>
+  </div>
+  <div class="about-grid fade-in">
+    <div class="about-card">
+      <div class="about-label">Who I Am</div>
+      <p class="about-text">
+        Experienced <strong>DevOps Engineer</strong> with deep expertise in managing Kubernetes infrastructure and microservices at enterprise scale. Currently working on <strong>Bank Al Habib's core banking system</strong> — one of Pakistan's most critical financial infrastructures.<br><br>
+        Hands-on experience in setting up large clusters from scratch, managing production deployments, and ensuring smooth software delivery across environments. Passionate about observability, automation, and building systems that simply don't fail.
+      </p>
+    </div>
+    <div>
+      <div class="info-grid">
+        <div class="info-row">
+          <span class="info-key">LOCATION</span>
+          <span class="info-val">Islamabad, Pakistan</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">CURRENT ROLE</span>
+          <span class="info-val">DevOps Engineer @ Teresol</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">SINCE</span>
+          <span class="info-val">August 2024 – Present</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">EMAIL</span>
+          <span class="info-val"><a href="mailto:hashambaig2000@gmail.com">hashambaig2000@gmail.com</a></span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">PHONE</span>
+          <span class="info-val">+92 331 2042326</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">LINKEDIN</span>
+          <span class="info-val"><a href="https://linkedin.com/in/hasham-baig" target="_blank">hasham-baig</a></span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">LANGUAGES</span>
+          <span class="info-val">English · Urdu</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="skills">
+  <div class="section-header">
+    <span class="section-num">02</span>
+    <h2 class="section-title">Tech Stack</h2>
+    <div class="section-line"></div>
+  </div>
+  <div class="skills-grid fade-in">
+    <div class="skill-card">
+      <div class="skill-icon">☸️</div>
+      <div class="skill-name">Kubernetes</div>
+      <div class="skill-desc">400+ node clusters, HA deployments, Istio Ambient mesh, Rook-Ceph storage, kubeadm provisioning scripts</div>
+      <div class="skill-level"><div class="skill-fill" data-w="95"></div></div>
+    </div>
+    <div class="skill-card">
+      <div class="skill-icon">🐳</div>
+      <div class="skill-name">Docker & Harbor</div>
+      <div class="skill-desc">Container builds, private registry setup, image lifecycle management, containerd runtime</div>
+      <div class="skill-level"><div class="skill-fill" data-w="90"></div></div>
+    </div>
+    <div class="skill-card">
+      <div class="skill-icon">📊</div>
+      <div class="skill-name">Prometheus & Grafana</div>
+      <div class="skill-desc">Prometheus Operator, Thanos sharding, long-term metrics, Kiali integration, dashboards</div>
+      <div class="skill-level"><div class="skill-fill" data-w="90"></div></div>
+    </div>
+    <div class="skill-card">
+      <div class="skill-icon">🔍</div>
+      <div class="skill-name">ELK Stack</div>
+      <div class="skill-desc">Multi-node Elasticsearch, Filebeat log collection, Kibana HA setup, centralized log analysis</div>
+      <div class="skill-level"><div class="skill-fill" data-w="85"></div></div>
+    </div>
+    <div class="skill-card">
+      <div class="skill-icon">🐙</div>
+      <div class="skill-name">GitLab & Git</div>
+      <div class="skill-desc">Version control, CI/CD pipelines, image registry management, GitOps workflows</div>
+      <div class="skill-level"><div class="skill-fill" data-w="88"></div></div>
+    </div>
+    <div class="skill-card">
+      <div class="skill-icon">🐍</div>
+      <div class="skill-name">Python & Linux</div>
+      <div class="skill-desc">Automation scripts, node provisioning, bash scripting, Ubuntu/Debian administration</div>
+      <div class="skill-level"><div class="skill-fill" data-w="80"></div></div>
+    </div>
+  </div>
+</section>
+
+<section id="experience">
+  <div class="section-header">
+    <span class="section-num">03</span>
+    <h2 class="section-title">Experience</h2>
+    <div class="section-line"></div>
+  </div>
+  <div class="exp-card fade-in">
+    <div class="exp-header">
+      <div>
+        <div class="exp-role">DevOps Engineer</div>
+        <div class="exp-company">Teresol Pvt. Ltd. — Bank Al Habib</div>
+      </div>
+      <div class="exp-date">AUG 2024 — PRESENT</div>
+    </div>
+    <ul class="exp-items">
+      <li>Managed Kubernetes clusters with <strong>400+ nodes</strong> across multiple environments for Bank Al Habib's core banking system</li>
+      <li>Deployed and maintained on-premise, <strong>highly available Kubernetes clusters</strong> with proper networking, load balancing, and full documentation</li>
+      <li>Set up <strong>Harbor</strong> as a private container registry and used GitLab for version control and image management</li>
+      <li>Implemented <strong>Prometheus and Grafana</strong> for centralized monitoring of cluster health, resource utilization, and application performance</li>
+      <li>Handled <strong>disaster recovery</strong> by updating mounts, syncing services, restarting them, and resolving production issues through log monitoring and team collaboration</li>
+      <li>Documented complete infrastructure including cluster setup, monitoring, logging, DR procedures, and operational runbooks</li>
+    </ul>
+
+    <div class="contrib-title">Key Technical Contributions</div>
+    <ul class="exp-items">
+      <li>Designed scalable monitoring with <strong>Prometheus Operator</strong>, including sharding and Thanos integration for long-term metrics storage and federation</li>
+      <li>Configured <strong>Kiali</strong> to consume metrics from Thanos Querier, improving service-level visibility at scale</li>
+      <li>Deployed distributed Kubernetes storage using <strong>Rook-Ceph</strong>, enabling resilient CephFS-based PVCs beyond single-node capacity</li>
+      <li>Migrated service mesh from Istio default profile to <strong>Istio Ambient mode</strong>, significantly reducing memory utilization</li>
+      <li>Built and automated Kubernetes node provisioning with scripts for <strong>containerd, kubeadm, kubelet, kubectl</strong> across multiple machines</li>
+      <li>Designed and deployed multi-node <strong>Elasticsearch cluster</strong> with Filebeat integration for centralized log collection</li>
+      <li>Built Kubernetes clusters from scratch and deployed the complete core banking application ensuring <strong>high availability</strong></li>
+    </ul>
+  </div>
+</section>
+
+<section id="projects">
+  <div class="section-header">
+    <span class="section-num">04</span>
+    <h2 class="section-title">Key Projects</h2>
+    <div class="section-line"></div>
+  </div>
+  <div class="projects-grid fade-in">
+    <div class="proj-card">
+      <div class="proj-num">PROJECT_01</div>
+      <div class="proj-title">Core Banking K8s Infrastructure</div>
+      <div class="proj-desc">Built and managed 400+ node Kubernetes cluster from scratch for Bank Al Habib's production core banking system. Full HA, DR, monitoring and observability stack.</div>
+      <div class="proj-tags">
+        <span class="tag">Kubernetes</span><span class="tag">kubeadm</span><span class="tag">HA</span><span class="tag">Banking</span>
+      </div>
+    </div>
+    <div class="proj-card">
+      <div class="proj-num">PROJECT_02</div>
+      <div class="proj-title">Thanos Monitoring Architecture</div>
+      <div class="proj-desc">Scalable Prometheus Operator setup with sharding and Thanos for long-term metrics. Kiali integration for service-mesh visibility at enterprise scale.</div>
+      <div class="proj-tags">
+        <span class="tag">Prometheus</span><span class="tag">Thanos</span><span class="tag">Grafana</span><span class="tag">Kiali</span>
+      </div>
+    </div>
+    <div class="proj-card">
+      <div class="proj-num">PROJECT_03</div>
+      <div class="proj-title">Rook-Ceph Distributed Storage</div>
+      <div class="proj-desc">Deployed distributed Kubernetes storage with Rook-Ceph enabling CephFS-based PVCs for stateful workloads that scale beyond single-node limits.</div>
+      <div class="proj-tags">
+        <span class="tag">Rook-Ceph</span><span class="tag">CephFS</span><span class="tag">PVC</span><span class="tag">StatefulSets</span>
+      </div>
+    </div>
+    <div class="proj-card">
+      <div class="proj-num">PROJECT_04</div>
+      <div class="proj-title">ELK Centralized Logging</div>
+      <div class="proj-desc">Multi-node Elasticsearch cluster with Filebeat integration across all cluster nodes. Kibana HA setup for reliable log visualization in production environments.</div>
+      <div class="proj-tags">
+        <span class="tag">Elasticsearch</span><span class="tag">Filebeat</span><span class="tag">Kibana</span><span class="tag">ELK</span>
+      </div>
+    </div>
+    <div class="proj-card">
+      <div class="proj-num">PROJECT_05</div>
+      <div class="proj-title">Istio Ambient Mesh Migration</div>
+      <div class="proj-desc">Migrated service mesh from Istio default profile to Ambient mode, achieving significant memory reduction while maintaining full mTLS service-to-service security.</div>
+      <div class="proj-tags">
+        <span class="tag">Istio</span><span class="tag">Ambient</span><span class="tag">mTLS</span><span class="tag">Service Mesh</span>
+      </div>
+    </div>
+    <div class="proj-card">
+      <div class="proj-num">PROJECT_06</div>
+      <div class="proj-title">Node Provisioning Automation</div>
+      <div class="proj-desc">Built automated scripts to provision and configure Kubernetes worker nodes with containerd, kubeadm, kubelet, kubectl across fleets of bare-metal machines.</div>
+      <div class="proj-tags">
+        <span class="tag">Bash</span><span class="tag">containerd</span><span class="tag">kubeadm</span><span class="tag">Automation</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="education">
+  <div class="section-header">
+    <span class="section-num">05</span>
+    <h2 class="section-title">Education</h2>
+    <div class="section-line"></div>
+  </div>
+  <div class="edu-grid fade-in">
+    <div class="edu-card">
+      <div class="edu-degree">Bachelor in Computer Information & System Engineering</div>
+      <div class="edu-school">NED University of Engineering and Technology</div>
+      <div class="edu-year">2020 — 2024</div>
+    </div>
+    <div class="edu-card">
+      <div class="edu-degree">Intermediate (Pre-Engineering)</div>
+      <div class="edu-school">DJ Sindh Govt. Science College</div>
+      <div class="edu-year">2018 — 2020</div>
+    </div>
+  </div>
+</section>
+
+<section id="contact">
+  <div class="contact-inner fade-in">
+    <div class="contact-big">LET'S<br><span class="highlight">CONNECT</span></div>
+    <p class="contact-sub">
+      Open to new opportunities in DevOps, Platform Engineering, and Cloud Infrastructure.<br>
+      If you're building something ambitious, let's talk.
+    </p>
+    <div class="contact-links">
+      <a href="mailto:hashambaig2000@gmail.com" class="contact-link">
+        ✉ hashambaig2000@gmail.com
+      </a>
+      <a href="https://linkedin.com/in/hasham-baig" target="_blank" class="contact-link">
+        ⟶ LinkedIn Profile
+      </a>
+      <a href="tel:+923312042326" class="contact-link">
+        ☎ +92 331 2042326
+      </a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div>HASHAM BAIG — DEVOPS ENGINEER</div>
+  <div>ISLAMABAD, <span>PAKISTAN</span></div>
+  <div>© 2025</div>
+</footer>
+
+<script>
+  // Custom cursor
+  const cursor = document.getElementById('cursor');
+  const ring = document.getElementById('cursorRing');
+  let mx=0,my=0,rx=0,ry=0;
+  document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cursor.style.left=mx-5+'px'; cursor.style.top=my-5+'px'; });
+  function animRing(){
+    rx+=(mx-rx)*0.12; ry+=(my-ry)*0.12;
+    ring.style.left=rx-18+'px'; ring.style.top=ry-18+'px';
+    requestAnimationFrame(animRing);
+  }
+  animRing();
+  document.querySelectorAll('a,button').forEach(el=>{
+    el.addEventListener('mouseenter',()=>{ring.style.transform='scale(1.6)';ring.style.borderColor='var(--accent3)';});
+    el.addEventListener('mouseleave',()=>{ring.style.transform='scale(1)';ring.style.borderColor='var(--accent)';});
+  });
+
+  // Scroll animations
+  const obs = new IntersectionObserver(entries=>{
+    entries.forEach(e=>{
+      if(e.isIntersecting){
+        e.target.classList.add('visible');
+        // Animate skill bars
+        e.target.querySelectorAll('.skill-fill').forEach(bar=>{
+          bar.style.width = bar.dataset.w + '%';
+        });
+      }
+    });
+  },{threshold:0.1});
+  document.querySelectorAll('.fade-in').forEach(el=>obs.observe(el));
+</script>
+</body>
+</html>
