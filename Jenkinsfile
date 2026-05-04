@@ -2,15 +2,14 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_HUB_USER   = 'hasham17'        // ← Change this
-        IMAGE_NAME        = 'hasham-portfolio'
-        CONTAINER_NAME    = 'hasham-portfolio'
-        HOST_PORT         = '8080'
-        CONTAINER_PORT    = '80'
-        DOCKER_CREDENTIALS = 'dockerhub-credentials'         // Jenkins credential ID
+        DOCKER_HUB_USER    = 'hasham17'
+        IMAGE_NAME         = 'hasham-portfolio'
+        CONTAINER_NAME     = 'hasham-portfolio'
+        HOST_PORT          = '8080'
+        CONTAINER_PORT     = '80'
+        DOCKER_CREDENTIALS = 'dockerhub-credentials'
     }
 
-    // Only run pipeline when a tag is pushed (v*)
     triggers {
         githubPush()
     }
@@ -20,10 +19,30 @@ pipeline {
         stage('Validate Tag') {
             steps {
                 script {
-                    // Only proceed if this build was triggered by a tag
-                    if (!env.TAG_NAME) {
-                        error("❌ This pipeline only runs on tag pushes. Current ref: ${env.GIT_BRANCH}")
+                    // Try env.TAG_NAME first
+                    def tag = env.TAG_NAME
+
+                    // If null, extract from GIT_BRANCH (refs/tags/v1.0.0 → v1.0.0)
+                    if (!tag) {
+                        def branch = env.GIT_BRANCH ?: ''
+                        if (branch.contains('tags/')) {
+                            tag = branch.tokenize('/')[-1]
+                        }
                     }
+
+                    // If still null, ask git directly
+                    if (!tag) {
+                        tag = sh(
+                            script: "git describe --tags --exact-match HEAD 2>/dev/null || echo ''",
+                            returnStdout: true
+                        ).trim()
+                    }
+
+                    if (!tag) {
+                        error("❌ Could not detect tag. GIT_BRANCH=${env.GIT_BRANCH}")
+                    }
+
+                    env.TAG_NAME = tag
                     echo "✅ Tag detected: ${env.TAG_NAME}"
                 }
             }
@@ -39,7 +58,7 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    def imageTag = "${DOCKER_HUB_USER}/${IMAGE_NAME}:${env.TAG_NAME}"
+                    def imageTag    = "${DOCKER_HUB_USER}/${IMAGE_NAME}:${env.TAG_NAME}"
                     def imageLatest = "${DOCKER_HUB_USER}/${IMAGE_NAME}:latest"
 
                     echo "🔨 Building image: ${imageTag}"
@@ -65,20 +84,18 @@ pipeline {
                         docker logout
                     """
                 }
-                echo "✅ Image pushed: ${env.IMAGE_TAG}"
+                echo "✅ Pushed: ${env.IMAGE_TAG}"
             }
         }
 
         stage('Deploy on Docker') {
             steps {
                 script {
-                    echo "🚀 Deploying container: ${CONTAINER_NAME}"
+                    echo "🚀 Deploying: ${CONTAINER_NAME}"
                     sh """
-                        # Stop & remove old container if running
                         docker stop ${CONTAINER_NAME} 2>/dev/null || true
                         docker rm   ${CONTAINER_NAME} 2>/dev/null || true
 
-                        # Pull fresh image and run
                         docker pull ${env.IMAGE_TAG}
 
                         docker run -d \
@@ -87,7 +104,7 @@ pipeline {
                             -p ${HOST_PORT}:${CONTAINER_PORT} \
                             ${env.IMAGE_TAG}
 
-                        echo "✅ Container is running on port ${HOST_PORT}"
+                        echo "✅ Container running on port ${HOST_PORT}"
                         docker ps | grep ${CONTAINER_NAME}
                     """
                 }
@@ -113,10 +130,7 @@ pipeline {
 
         stage('Cleanup Old Images') {
             steps {
-                sh """
-                    # Remove dangling images to free disk space
-                    docker image prune -f
-                """
+                sh "docker image prune -f"
                 echo "✅ Cleanup done"
             }
         }
@@ -127,9 +141,9 @@ pipeline {
             echo """
             ═══════════════════════════════════════
             ✅ PIPELINE SUCCESSFUL
-            Tag      : ${env.TAG_NAME}
-            Image    : ${env.IMAGE_TAG}
-            URL      : http://<your-server-ip>:${HOST_PORT}
+            Tag   : ${env.TAG_NAME}
+            Image : ${env.IMAGE_TAG}
+            URL   : http://localhost:${HOST_PORT}
             ═══════════════════════════════════════
             """
         }
@@ -137,7 +151,6 @@ pipeline {
             echo "❌ Pipeline FAILED for tag: ${env.TAG_NAME}"
         }
         always {
-            // Clean workspace
             cleanWs()
         }
     }
