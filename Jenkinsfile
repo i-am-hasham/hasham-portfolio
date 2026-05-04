@@ -5,7 +5,7 @@ pipeline {
         DOCKER_HUB_USER    = 'hasham17'
         IMAGE_NAME         = 'hasham-portfolio'
         CONTAINER_NAME     = 'hasham-portfolio'
-        HOST_PORT          = '8080'
+        HOST_PORT          = '9090'
         CONTAINER_PORT     = '80'
         DOCKER_CREDENTIALS = 'dockerhub-credentials'
     }
