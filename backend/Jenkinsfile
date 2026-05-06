@@ -1,0 +1,137 @@
+pipeline {
+    agent any
+
+    environment {
+        DOCKER_HUB_USER    = 'hasham17'
+        IMAGE_NAME         = 'hasham-portfolio-backend'
+        CONTAINER_NAME     = 'hasham-backend'
+        HOST_PORT          = '3001'
+        CONTAINER_PORT     = '3001'
+        DOCKER_CREDENTIALS = 'dockerhub-credentials'
+    }
+
+    triggers { githubPush() }
+
+    stages {
+        stage('Validate Tag') {
+            steps {
+                script {
+                    def tag = env.TAG_NAME
+                    if (!tag) {
+                        def branch = env.GIT_BRANCH ?: ''
+                        if (branch.contains('tags/')) tag = branch.tokenize('/')[-1]
+                    }
+                    if (!tag) {
+                        tag = sh(script:"git describe --tags --exact-match HEAD 2>/dev/null || echo ''",returnStdout:true).trim()
+                    }
+                    if (!tag) error("❌ Not a tag build. GIT_BRANCH=${env.GIT_BRANCH}")
+                    env.TAG_NAME = tag
+                    echo "✅ Backend tag: ${env.TAG_NAME}"
+                }
+            }
+        }
+
+        stage('Checkout') {
+            steps { checkout scm; echo "✅ Checked out tag: ${env.TAG_NAME}" }
+        }
+
+        stage('Build Image') {
+            steps {
+                script {
+                    env.IMAGE_TAG    = "${DOCKER_HUB_USER}/${IMAGE_NAME}:${env.TAG_NAME}"
+                    env.IMAGE_LATEST = "${DOCKER_HUB_USER}/${IMAGE_NAME}:latest"
+                    sh "docker build -t ${env.IMAGE_TAG} -t ${env.IMAGE_LATEST} ./backend"
+                    echo "✅ Built: ${env.IMAGE_TAG}"
+                }
+            }
+        }
+
+        stage('Push to Docker Hub') {
+            steps {
+                withCredentials([usernamePassword(credentialsId:"${DOCKER_CREDENTIALS}",usernameVariable:'DH_USER',passwordVariable:'DH_PASS')]) {
+                    sh """
+                        echo \$DH_PASS | docker login -u \$DH_USER --password-stdin
+                        docker push ${env.IMAGE_TAG}
+                        docker push ${env.IMAGE_LATEST}
+                        docker logout
+                    """
+                }
+                echo "✅ Pushed: ${env.IMAGE_TAG}"
+            }
+        }
+
+        stage('Deploy Backend') {
+            steps {
+                script {
+                    sh """
+                        # Ensure shared network exists
+                        docker network create portfolio-net 2>/dev/null || true
+
+                        # Ensure Postgres is running
+                        docker inspect hasham-postgres > /dev/null 2>&1 || \
+                        docker run -d \
+                            --name hasham-postgres \
+                            --restart unless-stopped \
+                            --network portfolio-net \
+                            -e POSTGRES_DB=portfolio \
+                            -e POSTGRES_USER=hasham \
+                            -e POSTGRES_PASSWORD=hasham123 \
+                            -v hasham-pgdata:/var/lib/postgresql/data \
+                            postgres:15-alpine
+
+                        sleep 3
+
+                        docker stop ${CONTAINER_NAME} 2>/dev/null || true
+                        docker rm   ${CONTAINER_NAME} 2>/dev/null || true
+                        docker pull ${env.IMAGE_TAG}
+
+                        docker run -d \
+                            --name ${CONTAINER_NAME} \
+                            --restart unless-stopped \
+                            --network portfolio-net \
+                            -p ${HOST_PORT}:${CONTAINER_PORT} \
+                            -v hasham-uploads:/app/uploads \
+                            -e DB_HOST=hasham-postgres \
+                            -e DB_PORT=5432 \
+                            -e DB_NAME=portfolio \
+                            -e DB_USER=hasham \
+                            -e DB_PASS=hasham123 \
+                            ${env.IMAGE_TAG}
+
+                        echo "✅ Backend running on port ${HOST_PORT}"
+                    """
+                }
+            }
+        }
+
+        stage('Health Check') {
+            steps {
+                script {
+                    sleep(time:8,unit:'SECONDS')
+                    def s = sh(script:"curl -s -o /dev/null -w '%{http_code}' http://localhost:${HOST_PORT}/health",returnStdout:true).trim()
+                    if(s=='200') echo "✅ Backend health check passed — HTTP ${s}"
+                    else error("❌ Backend health check failed — HTTP ${s}")
+                }
+            }
+        }
+
+        stage('Cleanup') {
+            steps { sh "docker image prune -f"; echo "✅ Cleanup done" }
+        }
+    }
+
+    post {
+        success {
+            echo """
+            ═══════════════════════════════════
+            ✅ BACKEND PIPELINE SUCCESSFUL
+            Tag   : ${env.TAG_NAME}
+            Image : ${env.IMAGE_TAG}
+            API   : http://localhost:${HOST_PORT}
+            ═══════════════════════════════════
+            """
+        }
+        failure { echo "❌ Backend pipeline FAILED: ${env.TAG_NAME}" }
+        always  { cleanWs() }
+    }
+}

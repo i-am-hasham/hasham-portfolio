@@ -1,0 +1,112 @@
+pipeline {
+    agent any
+
+    environment {
+        DOCKER_HUB_USER    = 'hasham17'
+        IMAGE_NAME         = 'hasham-portfolio-frontend'
+        CONTAINER_NAME     = 'hasham-frontend'
+        HOST_PORT          = '9090'
+        CONTAINER_PORT     = '80'
+        DOCKER_CREDENTIALS = 'dockerhub-credentials'
+    }
+
+    triggers { githubPush() }
+
+    stages {
+        stage('Validate Tag') {
+            steps {
+                script {
+                    def tag = env.TAG_NAME
+                    if (!tag) {
+                        def branch = env.GIT_BRANCH ?: ''
+                        if (branch.contains('tags/')) tag = branch.tokenize('/')[-1]
+                    }
+                    if (!tag) {
+                        tag = sh(script:"git describe --tags --exact-match HEAD 2>/dev/null || echo ''",returnStdout:true).trim()
+                    }
+                    if (!tag) error("❌ Not a tag build. GIT_BRANCH=${env.GIT_BRANCH}")
+                    env.TAG_NAME = tag
+                    echo "✅ Frontend tag: ${env.TAG_NAME}"
+                }
+            }
+        }
+
+        stage('Checkout') {
+            steps { checkout scm; echo "✅ Checked out tag: ${env.TAG_NAME}" }
+        }
+
+        stage('Build Image') {
+            steps {
+                script {
+                    env.IMAGE_TAG    = "${DOCKER_HUB_USER}/${IMAGE_NAME}:${env.TAG_NAME}"
+                    env.IMAGE_LATEST = "${DOCKER_HUB_USER}/${IMAGE_NAME}:latest"
+                    sh "docker build -t ${env.IMAGE_TAG} -t ${env.IMAGE_LATEST} ./frontend"
+                    echo "✅ Built: ${env.IMAGE_TAG}"
+                }
+            }
+        }
+
+        stage('Push to Docker Hub') {
+            steps {
+                withCredentials([usernamePassword(credentialsId:"${DOCKER_CREDENTIALS}",usernameVariable:'DH_USER',passwordVariable:'DH_PASS')]) {
+                    sh """
+                        echo \$DH_PASS | docker login -u \$DH_USER --password-stdin
+                        docker push ${env.IMAGE_TAG}
+                        docker push ${env.IMAGE_LATEST}
+                        docker logout
+                    """
+                }
+                echo "✅ Pushed: ${env.IMAGE_TAG}"
+            }
+        }
+
+        stage('Deploy Frontend') {
+            steps {
+                script {
+                    sh """
+                        docker stop ${CONTAINER_NAME} 2>/dev/null || true
+                        docker rm   ${CONTAINER_NAME} 2>/dev/null || true
+                        docker pull ${env.IMAGE_TAG}
+                        docker run -d \
+                            --name ${CONTAINER_NAME} \
+                            --restart unless-stopped \
+                            --network portfolio-net \
+                            -p ${HOST_PORT}:${CONTAINER_PORT} \
+                            ${env.IMAGE_TAG}
+                        echo "✅ Frontend running on port ${HOST_PORT}"
+                    """
+                }
+            }
+        }
+
+        stage('Health Check') {
+            steps {
+                script {
+                    sleep(time:5,unit:'SECONDS')
+                    def s = sh(script:"curl -s -o /dev/null -w '%{http_code}' http://localhost:${HOST_PORT}",returnStdout:true).trim()
+                    if(s=='200') echo "✅ Health check passed — HTTP ${s}"
+                    else error("❌ Health check failed — HTTP ${s}")
+                }
+            }
+        }
+
+        stage('Cleanup') {
+            steps { sh "docker image prune -f"; echo "✅ Cleanup done" }
+        }
+    }
+
+    post {
+        success {
+            echo """
+            ═══════════════════════════════════
+            ✅ FRONTEND PIPELINE SUCCESSFUL
+            Tag   : ${env.TAG_NAME}
+            Image : ${env.IMAGE_TAG}
+            URL   : http://localhost:${HOST_PORT}
+            ═══════════════════════════════════
+            """
+        }
+        failure { echo "❌ Frontend pipeline FAILED: ${env.TAG_NAME}" }
+        always  { cleanWs() }
+    }
+}
