@@ -16,21 +16,36 @@ pipeline {
         stage('Validate Tag') {
             steps {
                 script {
+                    def triggerTag = ''
+                    def branch = env.GIT_BRANCH ?: ''
+                    if (branch.contains('tags/')) {
+                        triggerTag = branch.tokenize('/')[-1]
+                    }
+                    if (!triggerTag && env.TAG_NAME) {
+                        triggerTag = env.TAG_NAME
+                    }
+
+                    echo "Triggered by tag: ${triggerTag}"
+
+                    // If triggered by be-* tag stop immediately do nothing
+                    if (triggerTag && triggerTag.startsWith('be-')) {
+                        echo "⏭️ be-* tag pushed — frontend pipeline exiting without any action"
+                        currentBuild.result = 'NOT_BUILT'
+                        return
+                    }
+
                     def tag = env.TAG_NAME
                     if (!tag) {
-                        def branch = env.GIT_BRANCH ?: ''
                         if (branch.contains('tags/')) tag = branch.tokenize('/')[-1]
                     }
                     if (!tag) {
-                        tag = sh(script:"git describe --tags --exact-match HEAD 2>/dev/null || echo ''",returnStdout:true).trim()
+                        tag = sh(script:"git describe --tags --exact-match HEAD 2>/dev/null || echo ''", returnStdout:true).trim()
                     }
-                    if (!tag) error("❌ Not a tag build. GIT_BRANCH=${env.GIT_BRANCH}")
-
-                    // ONLY run if tag starts with fe-
+                    if (!tag) error("❌ Not a tag build")
                     if (!tag.startsWith('fe-')) {
-                        echo "⏭️ Skipping — tag '${tag}' is not a frontend tag"
-                        currentBuild.result = 'ABORTED'
-                        error("Not a frontend tag — skipping")
+                        echo "⏭️ Not a frontend tag — skipping"
+                        currentBuild.result = 'NOT_BUILT'
+                        return
                     }
 
                     env.TAG_NAME = tag
@@ -40,6 +55,9 @@ pipeline {
         }
 
         stage('Checkout') {
+            when {
+                expression { currentBuild.result != 'NOT_BUILT' }
+            }
             steps {
                 checkout scm
                 echo "✅ Checked out tag: ${env.TAG_NAME}"
@@ -47,6 +65,9 @@ pipeline {
         }
 
         stage('Build Image') {
+            when {
+                expression { currentBuild.result != 'NOT_BUILT' }
+            }
             steps {
                 script {
                     env.IMAGE_TAG    = "${DOCKER_HUB_USER}/${IMAGE_NAME}:${env.TAG_NAME}"
@@ -58,6 +79,9 @@ pipeline {
         }
 
         stage('Push to Docker Hub') {
+            when {
+                expression { currentBuild.result != 'NOT_BUILT' }
+            }
             steps {
                 withCredentials([usernamePassword(credentialsId:"${DOCKER_CREDENTIALS}",usernameVariable:'DH_USER',passwordVariable:'DH_PASS')]) {
                     sh """
@@ -72,6 +96,9 @@ pipeline {
         }
 
         stage('Deploy Frontend') {
+            when {
+                expression { currentBuild.result != 'NOT_BUILT' }
+            }
             steps {
                 script {
                     sh """
@@ -95,6 +122,9 @@ pipeline {
         }
 
         stage('Health Check') {
+            when {
+                expression { currentBuild.result != 'NOT_BUILT' }
+            }
             steps {
                 script {
                     sleep(time:5,unit:'SECONDS')
@@ -106,6 +136,9 @@ pipeline {
         }
 
         stage('Cleanup') {
+            when {
+                expression { currentBuild.result != 'NOT_BUILT' }
+            }
             steps {
                 sh "docker image prune -f"
                 echo "✅ Cleanup done"
