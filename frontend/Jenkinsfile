@@ -25,6 +25,14 @@ pipeline {
                         tag = sh(script:"git describe --tags --exact-match HEAD 2>/dev/null || echo ''",returnStdout:true).trim()
                     }
                     if (!tag) error("❌ Not a tag build. GIT_BRANCH=${env.GIT_BRANCH}")
+
+                    // ONLY run if tag starts with fe-
+                    if (!tag.startsWith('fe-')) {
+                        echo "⏭️ Skipping — tag '${tag}' is not a frontend tag"
+                        currentBuild.result = 'ABORTED'
+                        error("Not a frontend tag — skipping")
+                    }
+
                     env.TAG_NAME = tag
                     echo "✅ Frontend tag: ${env.TAG_NAME}"
                 }
@@ -32,7 +40,10 @@ pipeline {
         }
 
         stage('Checkout') {
-            steps { checkout scm; echo "✅ Checked out tag: ${env.TAG_NAME}" }
+            steps {
+                checkout scm
+                echo "✅ Checked out tag: ${env.TAG_NAME}"
+            }
         }
 
         stage('Build Image') {
@@ -64,15 +75,19 @@ pipeline {
             steps {
                 script {
                     sh """
+                        docker network create portfolio-net 2>/dev/null || true
+
                         docker stop ${CONTAINER_NAME} 2>/dev/null || true
                         docker rm   ${CONTAINER_NAME} 2>/dev/null || true
                         docker pull ${env.IMAGE_TAG}
+
                         docker run -d \
                             --name ${CONTAINER_NAME} \
                             --restart unless-stopped \
                             --network portfolio-net \
                             -p ${HOST_PORT}:${CONTAINER_PORT} \
                             ${env.IMAGE_TAG}
+
                         echo "✅ Frontend running on port ${HOST_PORT}"
                     """
                 }
@@ -84,14 +99,17 @@ pipeline {
                 script {
                     sleep(time:5,unit:'SECONDS')
                     def s = sh(script:"curl -s -o /dev/null -w '%{http_code}' http://localhost:${HOST_PORT}",returnStdout:true).trim()
-                    if(s=='200') echo "✅ Health check passed — HTTP ${s}"
-                    else error("❌ Health check failed — HTTP ${s}")
+                    if(s=='200') echo "✅ Frontend health check passed — HTTP ${s}"
+                    else error("❌ Frontend health check failed — HTTP ${s}")
                 }
             }
         }
 
         stage('Cleanup') {
-            steps { sh "docker image prune -f"; echo "✅ Cleanup done" }
+            steps {
+                sh "docker image prune -f"
+                echo "✅ Cleanup done"
+            }
         }
     }
 

@@ -25,6 +25,14 @@ pipeline {
                         tag = sh(script:"git describe --tags --exact-match HEAD 2>/dev/null || echo ''",returnStdout:true).trim()
                     }
                     if (!tag) error("❌ Not a tag build. GIT_BRANCH=${env.GIT_BRANCH}")
+
+                    // ONLY run if tag starts with be-
+                    if (!tag.startsWith('be-')) {
+                        echo "⏭️ Skipping — tag '${tag}' is not a backend tag"
+                        currentBuild.result = 'ABORTED'
+                        error("Not a backend tag — skipping")
+                    }
+
                     env.TAG_NAME = tag
                     echo "✅ Backend tag: ${env.TAG_NAME}"
                 }
@@ -32,7 +40,10 @@ pipeline {
         }
 
         stage('Checkout') {
-            steps { checkout scm; echo "✅ Checked out tag: ${env.TAG_NAME}" }
+            steps {
+                checkout scm
+                echo "✅ Checked out tag: ${env.TAG_NAME}"
+            }
         }
 
         stage('Build Image') {
@@ -64,10 +75,8 @@ pipeline {
             steps {
                 script {
                     sh """
-                        # Ensure shared network exists
                         docker network create portfolio-net 2>/dev/null || true
 
-                        # Ensure Postgres is running
                         docker inspect hasham-postgres > /dev/null 2>&1 || \
                         docker run -d \
                             --name hasham-postgres \
@@ -116,7 +125,10 @@ pipeline {
         }
 
         stage('Cleanup') {
-            steps { sh "docker image prune -f"; echo "✅ Cleanup done" }
+            steps {
+                sh "docker image prune -f"
+                echo "✅ Cleanup done"
+            }
         }
     }
 
