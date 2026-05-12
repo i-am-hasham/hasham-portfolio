@@ -2,3 +2,4 @@
 update
 test
 cache clear test
+cache clear test
