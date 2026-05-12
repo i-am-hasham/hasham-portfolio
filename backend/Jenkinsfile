@@ -16,52 +16,43 @@ pipeline {
         stage('Validate Tag') {
             steps {
                 script {
-                    def triggerTag = ''
                     def branch = env.GIT_BRANCH ?: ''
-                    if (branch.contains('tags/')) {
-                        triggerTag = branch.tokenize('/')[-1]
-                    }
-                    if (!triggerTag && env.TAG_NAME) {
-                        triggerTag = env.TAG_NAME
+
+                    // If branch push (not a tag) — do nothing
+                    if (!branch.contains('tags/')) {
+                        echo "⏭️ Branch push detected — only tag pushes trigger backend pipeline"
+                        currentBuild.result = 'NOT_BUILT'
+                        return
                     }
 
+                    def triggerTag = branch.tokenize('/')[-1]
                     echo "Triggered by tag: ${triggerTag}"
 
-                    // If triggered by fe-* tag stop immediately do nothing
-                    if (triggerTag && triggerTag.startsWith('fe-')) {
+                    // If fe-* tag — do nothing
+                    if (triggerTag.startsWith('fe-')) {
                         echo "⏭️ fe-* tag pushed — backend pipeline exiting without any action"
                         currentBuild.result = 'NOT_BUILT'
                         return
                     }
 
-                    def tag = env.TAG_NAME
-                    if (!tag) {
-                        if (branch.contains('tags/')) tag = branch.tokenize('/')[-1]
-                    }
-                    if (!tag) {
-                        tag = sh(script:"git describe --tags --exact-match HEAD 2>/dev/null || echo ''", returnStdout:true).trim()
-                    }
-                    if (!tag) error("❌ Not a tag build")
-                    if (!tag.startsWith('be-')) {
+                    // Must be be-* tag
+                    if (!triggerTag.startsWith('be-')) {
                         echo "⏭️ Not a backend tag — skipping"
                         currentBuild.result = 'NOT_BUILT'
                         return
                     }
 
-                    env.TAG_NAME = tag
+                    env.TAG_NAME = triggerTag
                     echo "✅ Backend tag: ${env.TAG_NAME}"
                 }
             }
         }
 
         stage('Checkout') {
+            when {
+                expression { currentBuild.result != 'NOT_BUILT' }
+            }
             steps {
-                script {
-                    if (currentBuild.result == 'NOT_BUILT') {
-                        echo "⏭️ Skipping checkout"
-                        return
-                    }
-                }
                 checkout scm
                 echo "✅ Checked out tag: ${env.TAG_NAME}"
             }
